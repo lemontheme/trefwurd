@@ -1,0 +1,1199 @@
+{
+  "aandoen": [
+    "aangedaan"
+  ],
+  "aankomen": [
+    "aangekomen"
+  ],
+  "afwassen": [
+    "afgewassen"
+  ],
+  "eten": [
+    "at",
+    "aten",
+    "gegeten"
+  ],
+  "bidden": [
+    "bad",
+    "baden",
+    "gebeden"
+  ],
+  "bakken": [
+    "bakte",
+    "bakten",
+    "gebakken"
+  ],
+  "bannen": [
+    "bande",
+    "banden",
+    "gebannen"
+  ],
+  "barsten": [
+    "barstte",
+    "barstten",
+    "gebarsten"
+  ],
+  "bederven": [
+    "bedierf",
+    "bedierven",
+    "bedorven"
+  ],
+  "bedriegen": [
+    "bedrogen",
+    "bedroog"
+  ],
+  "bijten": [
+    "beet",
+    "beten",
+    "gebeten"
+  ],
+  "beginnen": [
+    "begon",
+    "begonnen"
+  ],
+  "begraven": [
+    "begraven",
+    "begroef",
+    "begroeven"
+  ],
+  "begrijpen": [
+    "begreep",
+    "begrepen"
+  ],
+  "behangen": [
+    "behangen",
+    "behing",
+    "behingen"
+  ],
+  "bekijken": [
+    "bekeek",
+    "bekeken"
+  ],
+  "benijden": [
+    "beneden",
+    "beneed"
+  ],
+  "beschrijven": [
+    "beschreef",
+    "beschreven"
+  ],
+  "besluiten": [
+    "besloot",
+    "besloten"
+  ],
+  "bespreken": [
+    "besprak",
+    "bespraken",
+    "besproken"
+  ],
+  "bestaan": [
+    "bestaan",
+    "bestond",
+    "bestonden"
+  ],
+  "bevelen": [
+    "beval",
+    "bevalen",
+    "bevolen"
+  ],
+  "bevallen": [
+    "bevallen",
+    "beviel",
+    "bevielen"
+  ],
+  "bewijzen": [
+    "bewees",
+    "bewezen"
+  ],
+  "bewegen": [
+    "bewogen",
+    "bewoog"
+  ],
+  "bezoeken": [
+    "bezocht",
+    "bezochten"
+  ],
+  "bezwijken": [
+    "bezweek",
+    "bezweken"
+  ],
+  "blijven": [
+    "bleef",
+    "bleven",
+    "gebleven"
+  ],
+  "blijken": [
+    "bleek",
+    "bleken",
+    "gebleken"
+  ],
+  "blazen": [
+    "blies",
+    "bliezen",
+    "geblazen"
+  ],
+  "blinken": [
+    "blonk",
+    "blonken",
+    "geblonken"
+  ],
+  "bieden": [
+    "boden",
+    "bood",
+    "geboden"
+  ],
+  "buigen": [
+    "bogen",
+    "boog",
+    "gebogen"
+  ],
+  "binden": [
+    "bond",
+    "bonden",
+    "gebonden"
+  ],
+  "bergen": [
+    "borg",
+    "borgen",
+    "geborgen"
+  ],
+  "braden": [
+    "braadde",
+    "braadden",
+    "gebraden"
+  ],
+  "brengen": [
+    "bracht",
+    "brachten",
+    "gebracht"
+  ],
+  "breken": [
+    "brak",
+    "braken",
+    "gebroken"
+  ],
+  "brouwen": [
+    "brouwde",
+    "brouwden",
+    "gebrouwen"
+  ],
+  "denken": [
+    "dacht",
+    "dachten",
+    "gedacht"
+  ],
+  "doen": [
+    "deden",
+    "deed",
+    "gedaan",
+    "doe",
+    "doet"
+  ],
+  "duiken": [
+    "doken",
+    "dook",
+    "gedoken"
+  ],
+  "dingen": [
+    "dong",
+    "dongen",
+    "gedongen"
+  ],
+  "doorlopen": [
+    "doorgelopen"
+  ],
+  "drijven": [
+    "dreef",
+    "dreven",
+    "gedreven"
+  ],
+  "dragen": [
+    "droeg",
+    "droegen",
+    "gedragen"
+  ],
+  "dringen": [
+    "drong",
+    "drongen",
+    "gedrongen"
+  ],
+  "drinken": [
+    "dronk",
+    "dronken",
+    "gedronken"
+  ],
+  "druipen": [
+    "droop",
+    "dropen",
+    "gedropen"
+  ],
+  "dwingen": [
+    "dwong",
+    "dwongen",
+    "gedwongen"
+  ],
+  "fluiten": [
+    "floot",
+    "floten",
+    "gefloten"
+  ],
+  "geven": [
+    "gaf",
+    "gaven",
+    "gegeven"
+  ],
+  "gaan": [
+    "gegaan",
+    "ging",
+    "gingen",
+    "gaat",
+    "ga"
+  ],
+  "glijden": [
+    "gegleden",
+    "gleden",
+    "gleed"
+  ],
+  "glimmen": [
+    "geglommen",
+    "glom",
+    "glommen"
+  ],
+  "gelden": [
+    "gegolden",
+    "gold",
+    "golden"
+  ],
+  "gieten": [
+    "gegoten",
+    "goot",
+    "goten"
+  ],
+  "graven": [
+    "gegraven",
+    "groef",
+    "groeven"
+  ],
+  "grijpen": [
+    "gegrepen",
+    "greep",
+    "grepen"
+  ],
+  "hebben": [
+    "gehad",
+    "had",
+    "hadt",
+    "hadden",
+    "heeft",
+    "heb",
+    "hebt",
+    "hebbend"
+  ],
+  "hangen": [
+    "gehangen",
+    "hing",
+    "hingen"
+  ],
+  "hijsen": [
+    "gehesen",
+    "hees",
+    "hesen"
+  ],
+  "heten": [
+    "geheten",
+    "heette",
+    "heetten"
+  ],
+  "heffen": [
+    "geheven",
+    "hief",
+    "hieven"
+  ],
+  "hoeven": [
+    "gehoeven",
+    "hoefde",
+    "hoefden"
+  ],
+  "helpen": [
+    "geholpen",
+    "hielp",
+    "hielpen"
+  ],
+  "houden": [
+    "gehouden",
+    "hield",
+    "hielden"
+  ],
+  "houwen": [
+    "gehouwen",
+    "houwde",
+    "houwden"
+  ],
+  "jagen": [
+    "gejaagd",
+    "joeg",
+    "joegen"
+  ],
+  "kijken": [
+    "gekeken",
+    "keek",
+    "keken"
+  ],
+  "klimmen": [
+    "geklommen",
+    "klom",
+    "klommen"
+  ],
+  "klinken": [
+    "geklonken",
+    "klonk",
+    "klonken"
+  ],
+  "kluiven": [
+    "gekloven",
+    "kloof",
+    "kloven"
+  ],
+  "knijpen": [
+    "geknepen",
+    "kneep",
+    "knepen"
+  ],
+  "kopen": [
+    "gekocht",
+    "kocht",
+    "kochten"
+  ],
+  "komen": [
+    "gekomen",
+    "kwam",
+    "kwamen"
+  ],
+  "kiezen": [
+    "gekozen",
+    "koos",
+    "kozen"
+  ],
+  "krijgen": [
+    "gekregen",
+    "kreeg",
+    "kregen"
+  ],
+  "krimpen": [
+    "gekrompen",
+    "kromp",
+    "krompen"
+  ],
+  "kruipen": [
+    "gekropen",
+    "kroop",
+    "kropen"
+  ],
+  "kunnen": [
+    "gekund",
+    "kan",
+    "kun",
+    "kunt",
+    "kondt",
+    "kunnend",
+    "kon",
+    "konden"
+  ],
+  "kwijten": [
+    "gekweten",
+    "kweet",
+    "kweten"
+  ],
+  "lachen": [
+    "gelachen",
+    "lachte",
+    "lachten"
+  ],
+  "laden": [
+    "geladen",
+    "laadde",
+    "laadden"
+  ],
+  "laten": [
+    "gelaten",
+    "liet",
+    "lieten"
+  ],
+  "lijden": [
+    "geleden",
+    "leden",
+    "leed"
+  ],
+  "liggen": [
+    "gelegen",
+    "lag",
+    "lagen"
+  ],
+  "lijken": [
+    "geleken",
+    "leek",
+    "leken"
+  ],
+  "lezen": [
+    "gelezen",
+    "las",
+    "lazen"
+  ],
+  "liegen": [
+    "gelogen",
+    "logen",
+    "loog"
+  ],
+  "lopen": [
+    "gelopen",
+    "liep",
+    "liepen"
+  ],
+  "malen": [
+    "gemalen",
+    "maalde",
+    "maalden"
+  ],
+  "mijden": [
+    "gemeden",
+    "meden",
+    "meed"
+  ],
+  "meten": [
+    "gemeten",
+    "mat",
+    "maten"
+  ],
+  "moeten": [
+    "gemoeten",
+    "moest",
+    "moet",
+    "moesten"
+  ],
+  "mogen": [
+    "gemogen",
+    "mag",
+    "moogt",
+    "mocht",
+    "mochten",
+    "mogend"
+  ],
+  "melken": [
+    "gemolken",
+    "molk",
+    "molken"
+  ],
+  "genezen": [
+    "genas",
+    "genazen",
+    "genezen"
+  ],
+  "nijgen": [
+    "genegen",
+    "neeg",
+    "negen"
+  ],
+  "nemen": [
+    "genomen",
+    "nam",
+    "namen"
+  ],
+  "genieten": [
+    "genoot",
+    "genoten"
+  ],
+  "pluizen": [
+    "geplozen",
+    "ploos",
+    "plozen"
+  ],
+  "prijzen": [
+    "geprezen",
+    "prees",
+    "prezen"
+  ],
+  "raden": [
+    "geraden",
+    "raadde",
+    "raadden"
+  ],
+  "rijden": [
+    "gereden",
+    "reden",
+    "reed"
+  ],
+  "rijgen": [
+    "geregen",
+    "reeg",
+    "regen"
+  ],
+  "rijten": [
+    "gereten",
+    "reet",
+    "reten"
+  ],
+  "rijzen": [
+    "gerezen",
+    "rees",
+    "rezen"
+  ],
+  "roepen": [
+    "geroepen",
+    "riep",
+    "riepen"
+  ],
+  "ruiken": [
+    "geroken",
+    "roken",
+    "rook"
+  ],
+  "scheppen": [
+    "geschapen",
+    "schiepen",
+    "shiep"
+  ],
+  "scheiden": [
+    "gescheiden",
+    "scheidde",
+    "scheidden"
+  ],
+  "schijnen": [
+    "geschenen",
+    "scheen",
+    "schenen"
+  ],
+  "schijten": [
+    "gescheten",
+    "scheet",
+    "scheten"
+  ],
+  "schelden": [
+    "gescholden",
+    "schold",
+    "scholden"
+  ],
+  "schuilen": [
+    "gescholen",
+    "scholen",
+    "school"
+  ],
+  "schenden": [
+    "geschonden",
+    "schond",
+    "schonden"
+  ],
+  "schenken": [
+    "geschonken",
+    "schonk",
+    "schonken"
+  ],
+  "scheren": [
+    "geschoren",
+    "scheerde",
+    "scheerden"
+  ],
+  "schieten": [
+    "geschoten",
+    "schoot",
+    "schoten"
+  ],
+  "schuiven": [
+    "geschoven",
+    "schoof",
+    "schoven"
+  ],
+  "schrijden": [
+    "geschreden",
+    "schreden",
+    "schreed"
+  ],
+  "schrijven": [
+    "geschreven",
+    "schreef",
+    "schreven"
+  ],
+  "schrikken": [
+    "geschrokken",
+    "schrok",
+    "schrokken"
+  ],
+  "slaan": [
+    "geslagen",
+    "sloeg",
+    "sloegen",
+    "sla",
+    "slaat"
+  ],
+  "slapen": [
+    "geslapen",
+    "sliep",
+    "sliepen"
+  ],
+  "slijpen": [
+    "geslepen",
+    "sleep",
+    "slepen"
+  ],
+  "slijten": [
+    "gesleten",
+    "sleet",
+    "sleten"
+  ],
+  "slinken": [
+    "geslonken",
+    "slonk",
+    "slonken"
+  ],
+  "sluipen": [
+    "geslopen",
+    "sloop",
+    "slopen"
+  ],
+  "sluiten": [
+    "gesloten",
+    "sloot",
+    "sloten"
+  ],
+  "smijten": [
+    "gesmeten",
+    "smeet",
+    "smeten"
+  ],
+  "smelten": [
+    "gesmolten",
+    "smolt",
+    "smolten"
+  ],
+  "snijden": [
+    "gesneden",
+    "sneden",
+    "sneed"
+  ],
+  "snuiten": [
+    "gesnoten",
+    "snoot",
+    "snoten"
+  ],
+  "snuiven": [
+    "gesnoven",
+    "snoof",
+    "snoven"
+  ],
+  "spannen": [
+    "gespannen",
+    "spande",
+    "spanden"
+  ],
+  "spijten": [
+    "gespeten",
+    "speet"
+  ],
+  "splijten": [
+    "gespleten",
+    "spleet",
+    "spleten"
+  ],
+  "spinnen": [
+    "gesponnen",
+    "spon",
+    "sponnen"
+  ],
+  "spuiten": [
+    "gespoten",
+    "spoot",
+    "spoten"
+  ],
+  "spreken": [
+    "gesproken",
+    "sprak",
+    "spraken"
+  ],
+  "springen": [
+    "gesprongen",
+    "sprong",
+    "sprongen"
+  ],
+  "spruiten": [
+    "gesproten",
+    "sproot",
+    "sproten"
+  ],
+  "staan": [
+    "gestaan",
+    "stond",
+    "stonden",
+    "sta",
+    "staat"
+  ],
+  "stijgen": [
+    "gestegen",
+    "steeg",
+    "stegen"
+  ],
+  "stijven": [
+    "gesteven",
+    "steef",
+    "steven"
+  ],
+  "steken": [
+    "gestoken",
+    "stak",
+    "staken"
+  ],
+  "stelen": [
+    "gestolen",
+    "stal",
+    "stalen"
+  ],
+  "stinken": [
+    "gestonken",
+    "stonk",
+    "stonken"
+  ],
+  "sterven": [
+    "gestorven",
+    "stierf",
+    "stierven"
+  ],
+  "stoten": [
+    "gestoten",
+    "stootte",
+    "stootten"
+  ],
+  "stuiven": [
+    "gestoven",
+    "stoof",
+    "stoven"
+  ],
+  "strijden": [
+    "gestreden",
+    "streden",
+    "streed"
+  ],
+  "strijken": [
+    "gestreken",
+    "streek",
+    "streken"
+  ],
+  "treden": [
+    "getreden",
+    "trad",
+    "traden"
+  ],
+  "treffen": [
+    "getroffen",
+    "trof",
+    "troffen"
+  ],
+  "trekken": [
+    "getrokken",
+    "trok",
+    "trokken"
+  ],
+  "vallen": [
+    "gevallen",
+    "viel",
+    "vielen"
+  ],
+  "vangen": [
+    "gevangen",
+    "ving",
+    "vingen"
+  ],
+  "varen": [
+    "gevaren",
+    "voer",
+    "voeren"
+  ],
+  "vlechten": [
+    "gevlochten",
+    "vlocht",
+    "vlochten"
+  ],
+  "vliegen": [
+    "gevlogen",
+    "vlogen",
+    "vloog"
+  ],
+  "vechten": [
+    "gevochten",
+    "vocht",
+    "vochten"
+  ],
+  "vinden": [
+    "gevonden",
+    "vond",
+    "vonden"
+  ],
+  "vouwen": [
+    "gevouwen",
+    "vouwde",
+    "vouwden"
+  ],
+  "vragen": [
+    "gevraagd",
+    "vroeg",
+    "vroegen"
+  ],
+  "vrijen": [
+    "gevreeën",
+    "gevrijd",
+    "vree",
+    "vreeën",
+    "vrijde",
+    "vrijden"
+  ],
+  "vreten": [
+    "gevreten",
+    "vrat",
+    "vraten"
+  ],
+  "vriezen": [
+    "gevroren",
+    "vroor",
+    "vroren"
+  ],
+  "wassen": [
+    "gewassen",
+    "waste",
+    "wasten"
+  ],
+  "zijn": [
+    "geweest",
+    "waren",
+    "was",
+    "ben",
+    "bent",
+    "is",
+    "zijt",
+    "waart",
+    "zijnd"
+  ],
+  "wijken": [
+    "geweken",
+    "week",
+    "weken"
+  ],
+  "weven": [
+    "geweven",
+    "weefde",
+    "weefden"
+  ],
+  "wijzen": [
+    "gewezen",
+    "wees",
+    "wezen"
+  ],
+  "willen": [
+    "gewild",
+    "wilden",
+    "wil",
+    "wilt",
+    "wou",
+    "woudt",
+    "wouden",
+    "wilde"
+  ],
+  "wegen": [
+    "gewogen",
+    "wogen",
+    "woog"
+  ],
+  "winden": [
+    "gewonden",
+    "wond",
+    "wonden"
+  ],
+  "winnen": [
+    "gewonnen",
+    "won",
+    "wonnen"
+  ],
+  "worden": [
+    "geworden",
+    "word",
+    "wordt",
+    "werd",
+    "werden"
+  ],
+  "werpen": [
+    "geworpen",
+    "wierp",
+    "wierpen"
+  ],
+  "werven": [
+    "geworven",
+    "wierf",
+    "wierven"
+  ],
+  "wrijven": [
+    "gewreven",
+    "wreef",
+    "wreven"
+  ],
+  "wreken": [
+    "gewroken",
+    "wreekte",
+    "wreekten"
+  ],
+  "wringen": [
+    "gewrongen",
+    "wrong",
+    "wrongen"
+  ],
+  "zeggen": [
+    "gezegd",
+    "zei",
+    "zeiden"
+  ],
+  "zitten": [
+    "gezeten",
+    "zat",
+    "zaten"
+  ],
+  "zien": [
+    "gezien",
+    "zag",
+    "zagen",
+    "zie",
+    "ziet"
+  ],
+  "zoeken": [
+    "gezocht",
+    "zocht",
+    "zochten"
+  ],
+  "zuigen": [
+    "gezogen",
+    "zogen",
+    "zoog"
+  ],
+  "zenden": [
+    "gezonden",
+    "zond",
+    "zonden"
+  ],
+  "zingen": [
+    "gezongen",
+    "zong",
+    "zongen"
+  ],
+  "zinken": [
+    "gezonken",
+    "zonk",
+    "zonken"
+  ],
+  "zinnen": [
+    "gezonnen",
+    "zon",
+    "zonnen"
+  ],
+  "zuipen": [
+    "gezopen",
+    "zoop",
+    "zopen"
+  ],
+  "zouten": [
+    "gezoutten",
+    "zoutte",
+    "zoutten"
+  ],
+  "zwijgen": [
+    "gezwegen",
+    "zweeg",
+    "zwegen"
+  ],
+  "zwelgen": [
+    "gezwolgen",
+    "zwolg",
+    "zwolgen"
+  ],
+  "zwellen": [
+    "gezwollen",
+    "zwol",
+    "zwollen"
+  ],
+  "zwemmen": [
+    "gezwommen",
+    "zwom",
+    "zwommen"
+  ],
+  "zweren": [
+    "gezworen",
+    "zwoer",
+    "zwoeren"
+  ],
+  "zwerven": [
+    "gezworven",
+    "zwierf",
+    "zwierven"
+  ],
+  "inbreken": [
+    "ingebroken"
+  ],
+  "innemen": [
+    "ingenomen"
+  ],
+  "meegaan": [
+    "meegegaan"
+  ],
+  "meenemen": [
+    "meegenomen"
+  ],
+  "neerzijgen": [
+    "neergezegen"
+  ],
+  "onderbreken": [
+    "onderbrak",
+    "onderbraken",
+    "onderbroken"
+  ],
+  "onderzoeken": [
+    "onderzocht",
+    "onderzochten"
+  ],
+  "ontbijten": [
+    "ontbeet",
+    "ontbeten"
+  ],
+  "ontbreken": [
+    "ontbrak",
+    "ontbraken",
+    "ontbroken"
+  ],
+  "ontginnen": [
+    "ontgon",
+    "ontgonnen"
+  ],
+  "onthouden": [
+    "onthield",
+    "onthielden",
+    "onthouden"
+  ],
+  "ontluiken": [
+    "ontloken",
+    "ontlook"
+  ],
+  "ontstaan": [
+    "ontstaan",
+    "ontstond",
+    "ontstonden"
+  ],
+  "ontvangen": [
+    "ontvangen",
+    "ontving",
+    "ontvingen"
+  ],
+  "opstaan": [
+    "opgestaan"
+  ],
+  "optreden": [
+    "opgetreden"
+  ],
+  "oversteken": [
+    "overgestoken"
+  ],
+  "overlijden": [
+    "overleden",
+    "overleed"
+  ],
+  "overvallen": [
+    "overvallen",
+    "overviel",
+    "overvielen"
+  ],
+  "uitdoen": [
+    "uitgedaan"
+  ],
+  "uitgaan": [
+    "uitgegaan"
+  ],
+  "uitsteken": [
+    "uitgestoken"
+  ],
+  "verbieden": [
+    "verboden",
+    "verbood"
+  ],
+  "verbergen": [
+    "verborg",
+    "verborgen"
+  ],
+  "verdrinken": [
+    "verdronk",
+    "verdronken"
+  ],
+  "verdrieten": [
+    "verdroot",
+    "verdroten"
+  ],
+  "verdwijnen": [
+    "verdween",
+    "verdwenen"
+  ],
+  "vergeten": [
+    "vergat",
+    "vergaten",
+    "vergeten"
+  ],
+  "vergelijken": [
+    "vergeleek",
+    "vergeleken"
+  ],
+  "verkopen": [
+    "verkocht",
+    "verkochten"
+  ],
+  "verlaten": [
+    "verlaten",
+    "verliet",
+    "verlieten"
+  ],
+  "verliezen": [
+    "verloor",
+    "verloren"
+  ],
+  "vermijden": [
+    "vermeden",
+    "vermeed"
+  ],
+  "verraden": [
+    "verraden",
+    "verried",
+    "verrieden"
+  ],
+  "verslinden": [
+    "verslond",
+    "verslonden"
+  ],
+  "verstaan": [
+    "verstaan",
+    "verstond",
+    "verstonden"
+  ],
+  "vertrekken": [
+    "vertrok",
+    "vertrokken"
+  ],
+  "vervangen": [
+    "vervangen",
+    "verving",
+    "vervingen"
+  ],
+  "verzinnen": [
+    "verzon",
+    "verzonnen"
+  ],
+  "weten": [
+    "wist",
+    "wisten"
+  ],
+  "zullen": [
+    "zou",
+    "zal",
+    "zul",
+    "zult",
+    "zouden",
+    "zullend"
+  ]
+}

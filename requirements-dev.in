@@ -1,0 +1,7 @@
+spacy
+tqdm
+jupyter
+pytest
+click
+pip-tools
+
