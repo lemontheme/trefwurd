@@ -1,4 +1,5 @@
 .idea/
+**/.DS_Store
 
 # Project-specific
 data/external/e-Lex-1.1.txt.gz  # TODO: find out how to distribute while honoring license

@@ -4,7 +4,7 @@ from collections import Counter, defaultdict
 
 from tqdm import tqdm
 
-from trefwurd.cst import subsumes, InflectionPair
+from trefwurd.cst import is_subsumed_by, InflectionPair
 from trefwurd.utils import read_lexical_data, character_ngrams
 
 
@@ -26,7 +26,7 @@ def candidate_lhs(sorted_lhss, n=10):
     result = []
     for lhs in sorted_lhss:
         for idx, prev_lhs in enumerate(result):
-            if subsumes(lhs, prev_lhs):
+            if is_subsumed_by(lhs, prev_lhs):
                 break
         else:
             if len(result) < n:

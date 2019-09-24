@@ -32,10 +32,6 @@ def create_rule(full_form, lemma, current_rule_length):
     raise NotImplementedError
 
 
-def longest_matching_rule(rules, word_class, full_form):
-    raise NotImplementedError
-
-
 def apply_rule(rule, full_form):
     raise NotImplementedError
 

@@ -5,394 +5,943 @@ CST
 Replication of CST algorithm.
 
 - NOT the same as lemmy
-- slightly different than affixtrain (cpp implementation)
+- Different than affixtrain (cpp implementation)
 
 Glossary:
 
 - 'LHS' = left-hand side (of rule)
 - 'RHS' = right-hand side (of rule)
-
-Rule induction
---------------
-
-X = list of (token, pos), y = list of corresponding lemma forms
-
-vocab := List[InflectionPair]
-prime_rule_stats := Mapping[rule_lhs, Mapping[rule_rhs, count]]
-
-proc build_tree := takes
-
-
-
-Rule application
-----------------
+- 'srt rule' = string transformation rule
 
 """
-import re
+
 import functools as ft
 import itertools as it
 import logging
-from collections import defaultdict
+import operator as op
+import random
+import re
+from collections import deque, defaultdict
 from difflib import SequenceMatcher
-from typing import (Tuple, Callable, Iterable, Sequence, List, Pattern as RePattern,
-                    ByteString, NamedTuple, Optional, Match as ReMatch, Union)
-
-from trefwurd.dfs import dfs_graph_best_path
+from typing import (
+    NewType,
+    Tuple,
+    Iterable,
+    Sequence,
+    Pattern as RePattern,
+    Optional,
+    Match as ReMatch,
+    Dict,
+    Set,
+    Union,
+    Iterator,
+    Callable,
+    List,
+    Any,
+)
 
 logger = logging.getLogger(__name__)
 
 
-class MaskedWord(NamedTuple):
+WILDCARD_CHAR = "*"
 
-    string: str
-    mask: bytearray
+# TODO: differentiate between masking character (multiple *)
+#  (or maybe change to '#') and wildcard/placeholder (single *)
 
-    def update_from_spans(self, spans: Iterable[Tuple[int, int]]):
-        for s, e in spans:
-            self.mask[s:e] = b"1" * (e - s)
-
-    def flip_mask_bit(self, *idxs: int):
-        for idx in idxs:
-            self.mask[idx] = 1
-
-    @property
-    def masked(self):
-        return apply_mask(self.string, self.mask)
-
-    @classmethod
-    def make(cls, string, mask_f=lambda s: bytearray(len(s))):
-        return MaskedWord(string, mask_f(string))
-
-
-def apply_mask(seq: Sequence, mask: Sequence):
-    return "".join("*" if m else x for x, m in zip(seq, mask))
+# TODO: Rename Rule to STR (short for 'String Transformation Rule')
 
 
 class ExamplePair:
 
-    token: MaskedWord  # inflected form
-    lemma: MaskedWord  # base form
-    pos: str
+    __slots__ = "token", "lemma", "token_mask", "lemma_mask"
 
-    def __init__(self, token: str, lemma: str, pos: str = None):
-        token_mask, lemma_mask = compute_overlap_masks(token, lemma)
-        self.token = MaskedWord(token, token_mask)
-        self.lemma = MaskedWord(lemma, lemma_mask)
-        self.pos = pos
+    def __init__(self, token: str, lemma: str):
+        self.token = token
+        self.lemma = lemma
+        self.token_mask, self.lemma_mask = compute_overlap_masks(self.token, self.lemma)
 
     @property
     def is_exhausted(self):
-        """lhs word mask exhausted"""
-        return not any(self.token.mask)
+        return not any(self.token_mask)
 
     @property
-    def masked(self):
-        return self.token.masked, self.lemma.masked
+    def overlap_masked(self):
+        return apply_mask(self.token, self.token_mask), apply_mask(self.lemma, self.lemma_mask)
 
-    @property
-    def as_rule_template(self):
-        return RuleTemplate(*map(collapse_wildcards, self.masked))
+    def __hash__(self):
+        return hash((self.token, self.lemma))
 
-    def update_mask(self):
-        # TODO: implement.
-        pass
+    def __eq__(self, other):
+        return self.token, self.lemma == self.token, self.lemma
+
+    def __repr__(self):
+        return f"<{type(self).__name__} obj @ {id(self)}; token={self.token} lemma={self.lemma}>"
+
+
+Vocab = NewType("Vocab", Iterable[ExamplePair])
 
 
 def compute_overlap_masks(seq1, seq2) -> Tuple[bytearray, bytearray]:
-    mask_1 = bytearray(len(seq1))
-    mask_2 = bytearray(len(seq2))
+    overlap = sequence_overlap(seq1, seq2)
+    seq1_mask = mask_from_spans(((s_idx, s_idx + size) for s_idx, _, size in overlap), len(seq1))
+    seq2_mask = mask_from_spans(((s_idx, s_idx + size) for _, s_idx, size in overlap), len(seq2))
+    return seq1_mask, seq2_mask
+
+
+def sequence_overlap(seq1: Sequence, seq2: Sequence):
+    """Convenience function for computing overlap between two sequences.
+
+    Returns:
+         Tuples of the form (start idx in seq1, start idx in seq2, size/length).
+    """
     diff = SequenceMatcher(None, seq1, seq2)
-    for a_i, b_i, size in diff.get_matching_blocks():
-        if size == 0:
-            continue
-        for x_i, mask in ((a_i, mask_1), (b_i, mask_2)):
-            for i in range(x_i, x_i + size):
-                mask[i] = 1
-    return mask_1, mask_2
+    # Drop last matching block, since this is always a dummy entry, with length=1.
+    return diff.get_matching_blocks()[:-1]
 
 
-def collapse_wildcards(string, wildcard="*") -> str:
-    if wildcard != "*":
-        raise ValueError("Currently, '*' is only supported wildcard character.")
-    return re.sub(r"\*+", "*", string)
+def mask_from_spans(spans: Iterable[Tuple[int, int]], seq_length: int) -> bytearray:
+    mask = bytearray(seq_length)
+    for s_i, e_i in spans:
+        mask[s_i:e_i] = it.repeat(1, e_i - s_i)
+    return mask
 
 
-class RuleTemplate(NamedTuple):
-    """
-    Why this class: Implements value comparison based on subsumption.
-
-    *ge*a*d → ***en
-
-    "The  asterisks  are  wildcards  and  placeholders.  The  pattern  on  the
-    left  hand  side  contains  three  wildcards,  each  one  corresponding
-    to  one  place-holder in the replacement string on the right hand side,
-    in  the  same  order.  The  characters  matched  by  a  wildcard  are
-    inserted  in  the  place  kept  free  by  the  corresponding
-    placeholder  in  the  replace-ment expression." [^1]
-
-    [1]: https://www.aclweb.org/anthology/P09-1017 (3.1)
-    """
-
-    lhs: str
-    rhs: str
-
-    def __lt__(self, other):
-        return subsumes(self.lhs, other.lhs)
-
-    def __gt__(self, other):
-        return subsumes(other.lhs, self.lhs)
+def invert_mask(mask: bytearray) -> bytearray:
+    return bytearray(1 ^ i for i in mask)  # `^` = XOR
 
 
-class Rule(NamedTuple):
-    """
-    >>> Rule("ge*t", "**en")
-    """
-    match_re: RePattern  # (re.Pattern)
-    sub_pattern: str
-    lhs: str
-    rhs: str
-    id: Optional[int]
-
-    @classmethod
-    def from_template(cls, rule: RuleTemplate, id_=None):
-        lhs, rhs = rule
-        _match_regexp, repl_regexp = rule_as_regexp(lhs, rhs)
-        return Rule(re.compile(_match_regexp), repl_regexp, lhs, rhs, id_ or id(rule))
-
-    def apply(self, string) -> Optional["ApplicationResult"]:
-        m = self.match_re.fullmatch(string)
-        if not m:
-            return None
-        lemma = m.expand(self.sub_pattern)
-        return ApplicationResult(lemma, m, self)
+def apply_mask(s: str, mask: bytearray):
+    return "".join("*" if m else x for x, m in zip(s, mask))
 
 
-class ApplicationResult:
-
-    __slots__ = ("result", "match", "rule")
-
-    def __init__(self, lemma, m, rule):
-        self.result = lemma
-        self.match = m
-        self.rule = rule
-
-    def inspect(self, source, target=None):
-        pass
-
-    # def __repr__(self):
-        # return f"{type(self).__name__}({self.result})"
+def collapse_wildcards(s: str) -> str:
+    return re.sub(f"{re.escape(WILDCARD_CHAR)}+", WILDCARD_CHAR, s)
 
 
-# Shape: ((input*, output**, target***), rule)
-# * = token
-# ** = predicted lemma
-# *** = target lemma or None
+class Rule:
+
+    lhs: str  # "ge*t"
+    rhs: str  # "*en"
+    _match_re: RePattern  # alias re.Pattern
+    _sub_regexp: str
+
+    __slots__ = "lhs", "rhs", "_match_re", "_sub_regexp"
+
+    def __init__(self, lhs: str, rhs: str):
+        """
+        >>> Rule("ge*t", "**en")
+        """
+        self.lhs, self.rhs = lhs, rhs
+        match_regexp, self._sub_regexp = rule_as_regexp(lhs, rhs)
+        self._match_re = re.compile(match_regexp)
+
+    def apply(self, s: str) -> Optional[str]:
+        m: ReMatch = self.match(s)
+        if m:
+            return self.transform_match(m)
+
+    def match(self, s: str) -> Optional[ReMatch]:
+        return self._match_re.fullmatch(s)
+
+    def transform_match(self, m: ReMatch) -> str:
+        return m.expand(self._sub_regexp)
+
+    def __eq__(self, other: "Rule"):
+        return self.lhs, self.rhs == other.lhs, other.rhs
+
+    def __lt__(self, other: "Rule"):
+        return is_subsumed_by(self.lhs, other.lhs)
+
+    def __gt__(self, other: "Rule"):
+        return is_subsumed_by(other.lhs, self.lhs)
+
+    def __repr__(self):
+        return f"<{type(self).__name__} obj @ {id(self)}; {self.as_string()}>"
+
+    def as_string(self):
+        return f"'{self.lhs}'-->'{self.rhs}'"
+
+    def __hash__(self):
+        return hash((self.lhs, self.rhs))
 
 
-class RuleTree:
-
-    def __init__(self, root_rule=RuleTemplate("*", "*")):
-        self._root = Rule(*root_rule)
-        self.graph = {self._root: []}
-
-    def add_rule(self, rule: Rule, parent: Rule = None):
-        self.graph[rule] = []
-        if parent:
-            siblings = self.graph[parent]
-            if rule not in siblings:
-                siblings.append(rule)
-
-    def del_rule(self, rule):
-        del self.graph[rule]
-        for other_rule, other_rule_children in self.graph.items():
-            if rule in other_rule_children:
-                other_rule_children.remove(other_rule)
-
-    def find_and_apply(self, string: str) -> ApplicationResult:
-        best_path = dfs_graph_best_path(self.graph, self._root, lambda rule_: rule_(string))
-        if best_path:
-            _, application_result = best_path
-            return application_result
-
-    def find_by_match(self):
-        pass
-
-
-def lemmatize(rule_tree: RuleTree, string: str) -> Tuple[str, ReMatch, Rule]:
+def select_rule(rule_tree, s: str) -> Tuple[Rule, ReMatch]:
     pass
 
 
-# there's something in the water
-
-
-def mask_spans_from_errors(example_pair):
-    pass
-
-
-def derive_new_rule():
-    pass
-
-
-# def reanalyze_wildcard_spans(m: ReMatch) -> Sequence[Tuple[int, int]]:
-#     return [m.span i in enumerate()
-
-
-def find_error_idx(wrong_string, right_string, from_right=True) -> int:
-    pass
-
-
-def rule_as_regexp(rule_lhs_pattern: str, rule_rhs_pattern: str, wildcard="*"):  # -> Callable[[str], str]:
+def rule_as_regexp(rule_lhs_pattern: str, rule_rhs_pattern: str):  # -> Callable[[str], str]:
     """
     Note:
         Rule pattern uses "*" to mean '__one__ or more characters'.
     """
-    lhs_wildcards_n = sum(1 for s in rule_lhs_pattern if s == wildcard)
-    rhs_wildcards_n = sum(1 for s in rule_rhs_pattern if s == wildcard)
+    lhs_wildcards_n = sum(1 for s in rule_lhs_pattern if s == WILDCARD_CHAR)
+    rhs_wildcards_n = sum(1 for s in rule_rhs_pattern if s == WILDCARD_CHAR)
+    # print(rule_lhs_pattern, rule_rhs_pattern, lhs_wildcards_n, rhs_wildcards_n)
     assert lhs_wildcards_n == rhs_wildcards_n
-    match_pattern = regexify_pattern_to_match(rule_lhs_pattern)
+    match_pattern = regexify_matching_pattern(rule_lhs_pattern)
     sub_pattern = f"{rule_rhs_pattern}"
     for backref_n in range(1, lhs_wildcards_n + 1):
-        sub_pattern, _ = re.subn(r"\*", r"\\{}".format(backref_n), sub_pattern, count=1)
+        sub_pattern, _ = re.subn(
+            re.escape(WILDCARD_CHAR), r"\\{}".format(backref_n), sub_pattern, count=1
+        )
     return match_pattern, sub_pattern
 
 
-def regexify_pattern_to_match(lhs_pattern) -> str:
-    return f"{lhs_pattern.replace('*', '(.+)')}"
+def regexify_matching_pattern(rule_pattern: str, wildcard_optional=False) -> str:
+    """Regexifies pattern against which tokens will be matched (i.e. the left-
+    hand side of the rule usually).
+    """
+    return rule_pattern.replace("*", f"(.{'+*'[wildcard_optional]})")
 
 
-def apply_rule(match_pattern, sub_pattern, string):
-    m = re.match(match_pattern, string)
-    if not m:
-        return None
-    pred = m.expand(sub_pattern)
-    spans = (m.span(g) for g in range(1, len(m.groups()) + 1))
-    token_mask = mask_from_spans(spans, len(string))
-    return pred, token_mask
+def captured_groups_as_spans(m: ReMatch) -> Sequence[Tuple[int, int]]:
+    return [m.span(g) for g in range(1, len(m.groups()) + 1)]
 
 
-def capturing_group_spans(m: ReMatch):
-    return (m.span(g) for g in range(1, len(m.groups()) + 1))
+def lhs_rhs_patterns(masked_token, masked_lemma) -> Tuple[str, str]:
+    """pattern = (lhs, rhs). forms basis of Rule.
+
+    Args:
+        masked_token: e.g. "***ge***d"
+        masked_lemma: e.g. "******gen"
+    """
+    placeholder_lengths = list(
+        sum(1 for _ in v) for k, v in it.groupby(masked_token) if k == WILDCARD_CHAR
+    )
+    if not (sum(placeholder_lengths) == sum(1 for char in masked_lemma if char == WILDCARD_CHAR)):
+        raise ValueError(
+            f"Arguments should contain an equal number of wildcards ({WILDCARD_CHAR})."
+        )
+
+    token_pattern = re.sub(f"{re.escape(WILDCARD_CHAR)}+", WILDCARD_CHAR, masked_token)
+
+    _lemma = masked_lemma
+    _lemma_pattern = []
+    for pl in placeholder_lengths:
+        lemma_head, lemma_rest = _lemma.split(WILDCARD_CHAR * pl, maxsplit=1)
+        _lemma_pattern.append(lemma_head)
+        _lemma = lemma_rest
+    _lemma_pattern.append(_lemma)
+    lemma_pattern = WILDCARD_CHAR.join(_lemma_pattern)
+
+    return token_pattern, lemma_pattern
 
 
-def mask_from_spans(spans: Iterable[Tuple[int, int]], seq_len: int) -> ByteString:
-    mask = bytearray(seq_len)
-    for s, e in spans:
-        mask[s:e] = b"1" * (e - s)
-    return mask
-
-
-def subsumes(rule_pattern1, rule_pattern2):
+def is_subsumed_by(rule_pattern1, rule_pattern2):
+    """
+    Return `True` if rule_pattern2 is a generalization of rule_pattern1,
+    or, equivalently, if rule_pattern1 is a more constrained version of
+    rule_pattern2.
+    """
     if rule_pattern1 == rule_pattern2:
         return False
-    if re.match(regexify_pattern_to_match(rule_pattern2), rule_pattern1):
+    if re.match(regexify_matching_pattern(rule_pattern2), rule_pattern1):
         return True
     else:
         return False
 
 
-# ignoring pos for now
-def fit(tokens: Iterable[str], lemmas: Iterable[str]):
-    """
-    training
-    """
-    vocab = [ExamplePair(token, lemma) for token, lemma in zip(tokens, lemmas)]
-    prime_rule_templates = prime_rules(vocab)  # type: List[RuleTemplate]
-    rule_tree = RuleTree()
-    rule_node_stats = defaultdict(lambda: defaultdict(list))
+# ------------------------------------------------------------------------------
 
 
-def collect_rule_stats():
-    pass
+class RuleNode:
+    def __init__(
+        self,
+        rule: Rule,
+        parent: Optional["RuleNode"] = None,
+        children: Optional[Sequence["RuleNode"]] = None,
+        id_=None,
+    ):
+        self.id_ = id_
+        self.rule = rule
+        self.parent = parent
+        self.children = children or []
 
-
-def select_rule(candidate_rules, rule_stats):
-    pass
-
-
-def prime_rules(vocab: Sequence[ExamplePair]):
-    pr = defaultdict(lambda: defaultdict(int))
-    for pair in vocab:
-        rule = pair.as_rule_template
-        pr[rule.lhs][rule.rhs] += 1
-    return [RuleTemplate(lhs, max(rhs_counts.items(lambda x: x[1]))[0])
-            for lhs, rhs_counts in sorted(pr.items(),
-                                          key=lambda x: sum(x[1].values()), reverse=True)]
-
-
-# ##########################################################
-
-
-def test():
-    eg1 = "geknipt", "knippen"  # ge*t -> *pen
-    eg2 = "gelapt", "lappen"  # ge*t -> *pen
-    eg3 = "geschikt", "schikken"  # ge*t -> ge*ken
-    eg4 = "gekaapt", "kapen"  # ge*apt -> *pen
-    eg5 = "wandelden", "wandelen"  # *den -> *en
-    # mw = WildcardWord("geschikt", [])
-    pass
-
-
-def find_error_exp():
-    r2 = RuleTemplate("*ge*d", "**en")
-    rule = Rule.from_template(r2)
-    print(rule)
-    token = "uitgelegd"
-    lemma = "uitleggen"
-
-    result = rule.apply(token)
-    predicted_lemma = result.result
-
-    # goal:
-    #   align token and predicted lemma
-    # e.g.
-    #   (uit)ge(leg)d   # token
-    #   (uit)__(leg)en  # incorrectly predicted lemma
-    # approach:
-    #  combine information about spans of matched groups with right-hand side
-    #  of rule so as to reconstruct process that yielded lemma prediction.
-    matched_spans = capturing_group_spans(result.match)
-    matching_blocks = []
-    pos_in_str = 0
-    for char in rule.rhs:
-        if char == "*":
-            try:
-                s1, e1 = next(matched_spans)
-                s2, e2 = (pos_in_str, pos_in_str + e1 - s1)
-                matching_blocks.append((s1, e1, s2, e2))
-                pos_in_str += e1 - s1
-            except StopIteration:
-                break
+    def attach(
+        self, parent: Optional["RuleNode"] = None, children: Iterable["RuleNode"] = None
+    ) -> Optional["RuleNode"]:
+        if parent and children:
+            raise ValueError
+        if parent:
+            if self not in parent.children:
+                parent.children.append(self)
+                self.parent = parent
+                return self
+        elif children:
+            for child in children:
+                if child.parent is None and child not in self.children:
+                    child.parent = self
+                    self.children.append(child)
+                    return self
         else:
-            pos_in_str += 1
-    print(matching_blocks)
+            raise ValueError("No attachment target provided.")
 
-    # goal:
-    #   find difference, either from left or from right.
-    # e.g. (mode=from right)
-    # ...uitlegen  # incorrectly predicted lemma
-    # ..uitleggen  # target lemma
-    #        x+++  # ("+" := agreement; "x" := disagreement)
+    def detach(
+        self, parent: Optional["RuleNode"] = None, children: Iterable["RuleNode"] = None
+    ) -> Optional["RuleNode"]:
+        if parent and children:
+            raise ValueError
+        if parent:
+            try:
+                parent.children.remove(self)
+                self.parent = None
+                return self
+            except ValueError:
+                return None  # Raised by p.c.remove(x) if x not found.
+        elif children:
+            for child in children:
+                if child.parent is self:
+                    try:
+                        self.children.remove(child)
+                        child.parent = None
+                    except ValueError:
+                        return
+        else:
+            raise ValueError("No target for detaching provided.")
 
-    j = 0
-    for l, r in zip(predicted_lemma[::-1], lemma[::-1]):
-        j += 1
-        if l != r:
+    @property
+    def ancestors(self) -> Sequence["RuleNode"]:
+        ancestors = []
+        _ancestor = self.parent
+        while _ancestor:
+            ancestors.append(_ancestor)
+            _ancestor = _ancestor.parent
+        return ancestors
+
+    @property
+    def depth(self) -> int:
+        """Counting from 0, such that root node's depth is equal to 0."""
+        return len(self.ancestors)
+
+    # def __eq__(self, other: "RuleNode"):
+    #     return self.rule == other.rule
+
+    def __repr__(self):
+        return (
+            f"<{type(self).__name__} obj @ {id(self)}; id={self.id_}, rule={self.rule.as_string()}, "
+            f"parent={self.parent.rule.as_string() if self.parent else None}, children={len(self.children)}>"
+        )
+
+    def __hash__(self):
+        return id(self) ^ hash(self.rule)
+
+
+# Rule generation --------------------------------------------------------------
+
+ExhaustedExamples = Set[ExamplePair]
+
+
+class TokenMaskExhaustedException(Exception):
+    """Signal that a token mask required all its masking bits to be set to 0 in
+    order for the (token, lemma) combination to give rise to a more specific
+    rule. At this point, if the token...
+    """
+
+    def __init__(self, rule=None, example=None):
+        self.rule = rule
+        self.example = example
+
+
+def prime_rule(example: ExamplePair) -> Rule:
+    rule = Rule(*lhs_rhs_patterns(*example.overlap_masked))
+    if example.is_exhausted:
+        raise TokenMaskExhaustedException(rule, example)
+    else:
+        return rule
+
+
+def derive_new_rule(rule: Rule, example: ExamplePair, max_changes=1) -> Rule:
+    """Derive new rule from RULE that incorrectly lemmatized TOKEN.
+
+    The (lhs, rhs) patterns of the new rule are minimally different from those
+    of the original rule. A number of extension strategies are permitted:
+
+    - Add an extra literal character;
+    - Remove a wildcard;
+    - Replace a wildcard with one literal character.
+
+    Returns:
+        Rule
+    """
+    # Determine how pattern in rule.lhs matched token.
+    token, lemma = example.token, example.lemma
+    m = rule.match(token)
+    if not m:
+        raise ValueError("Provided token did not match left-hand side of rule.")
+    # Start and end indices of subsequences that matched wildcards (*).
+    token_placeholder_spans = captured_groups_as_spans(m)
+    # Reverse engineered: token_mask that could have generated rule.
+    token_mask = mask_from_spans(token_placeholder_spans, len(token))
+    # Character indexes that are masked by token_mask (have value '1')
+    masked_idxs = [i for i in range(len(token)) if token_mask[i] == 1]
+    # All possible combinations of masking idxs that will be unmasked.
+    derived_rule_candidates = []
+    # Token mask hypotheses based on 'flipping' one or n < max_changes idxs in
+    # `masked_idxs`.
+    for unmasking_hyp in it.chain.from_iterable(
+        it.combinations(masked_idxs, n + 1) for n in range(max_changes)
+    ):
+        new_token_mask = token_mask.copy()
+        for idx in unmasking_hyp:
+            new_token_mask[idx] = 0
+        new_lemma_mask = _infer_corresponding_lemma_mask(token, new_token_mask, lemma)
+        if new_lemma_mask:
+            new_rule = Rule(
+                *lhs_rhs_patterns(
+                    apply_mask(token, new_token_mask), apply_mask(lemma, new_lemma_mask)
+                )
+            )
+            derived_rule_candidates.append((new_rule, new_token_mask))
+    # If valid rules found by first strategy, select the rule whose lhs differs
+    # the least from the lhs of the original rule.
+    if derived_rule_candidates:
+        # select least different
+        sm = SequenceMatcher(None)
+        sm.set_seq2(rule.lhs)
+        most_sim_dr_i, max_sim = 0, 0
+        for dr_i, (dr_rule, dr_token_mask) in enumerate(derived_rule_candidates):
+            sm.set_seq1(dr_rule.lhs)
+            similarity = sm.ratio()
+            if similarity > max_sim:
+                max_sim = similarity
+                most_sim_dr_i = dr_i
+        best_rule, underlying_token_mask = derived_rule_candidates[most_sim_dr_i]
+    # Fallback to prime rule lhs merged with token_mask according to lhs of current rule.
+    else:
+        new_token_mask = underlying_token_mask = bytearray(
+            map(op.and_, token_mask, example.token_mask)
+        )
+        new_lemma_mask = _infer_corresponding_lemma_mask(token, new_token_mask, lemma)
+        best_rule = Rule(
+            *lhs_rhs_patterns(apply_mask(token, new_token_mask), apply_mask(lemma, new_lemma_mask))
+        )
+    if not any(underlying_token_mask):
+        raise TokenMaskExhaustedException(best_rule, example)
+    else:
+        return best_rule
+
+
+def _infer_corresponding_lemma_mask(token, token_mask, lemma) -> Optional[bytearray]:
+    token_mask_inverted = invert_mask(token_mask)
+    # Re-mask token according to inverted modified character mask.
+    # This unmasks the characters that would otherwise be masked; and masks
+    # those characters which are normally visible in the rule pattern.
+    _new_masked_token = apply_mask(token, token_mask_inverted)
+    # Transform _masked_token into usable _pattern.
+    _pattern = regexify_matching_pattern(
+        collapse_wildcards(_new_masked_token), wildcard_optional=True
+    )
+    # Match pattern against lemma.
+    m = re.fullmatch(_pattern, lemma)
+    if m:
+        _new_lemma_mask = invert_mask(mask_from_spans(captured_groups_as_spans(m), len(lemma)))
+        return _new_lemma_mask
+
+
+# TODO: Use a dataclass for this instead
+class SupportStats:
+
+    __slots__ = "correct", "incorrect", "not_matched"
+
+    correct: Set[ExamplePair]
+    incorrect: Set[ExamplePair]
+    not_matched: Set[ExamplePair]
+
+    def __init__(self, correct=None, incorrect=None, not_matched=None):
+        self.incorrect = incorrect or set()
+        self.not_matched = not_matched or set()
+        self.correct = correct or set()
+
+    @property
+    def matched(self):
+        return self.correct | self.incorrect  # set union
+
+    @property
+    def n_correct(self):
+        return len(self.correct)
+
+    @property
+    def n_incorrect(self):
+        return len(self.incorrect)
+
+    @property
+    def n_not_matched(self):
+        return len(self.not_matched)
+
+    @property
+    def n_matched(self):
+        return len(self.matched)
+
+    @property
+    def summary(self):
+        return self.n_correct, self.n_incorrect, self.n_not_matched
+
+    def __repr__(self):
+        return f"{type(self).__name__}({', '.join('{}={}'.format(k, getattr(self, k)) for k in self.__slots__)})"
+
+
+def prime_rule_generator(vocab: Vocab, rule: Rule, exhausted: ExhaustedExamples, *args):
+    _ = rule
+    for x in vocab:
+        try:
+            yield prime_rule(x)
+        except TokenMaskExhaustedException:
+            exhausted.add(x)
+
+
+def derived_rule_generator(
+    vocab: Vocab, rule: Rule, exhausted: ExhaustedExamples, max_changes=1, *args
+):
+    for x in vocab:
+        try:
+            yield derive_new_rule(rule, x, max_changes=max_changes)
+        except TokenMaskExhaustedException:
+            exhausted.add(x)
+
+
+# def _transfer_parent_support_to_child_rule(
+#     parent_support: SupportStats, child_support: SupportStats
+# ) -> None:
+#     parent_support.correct.difference_update(child_support.correct)
+#     parent_support.incorrect.difference_update(child_support.incorrect)
+#
+#
+# def _update_child_support_from_parent(
+#     child_support: SupportStats, parent_support: SupportStats
+# ) -> None:
+#     child_support.correct.intersection_update(parent_support.correct)
+#     child_support.incorrect.intersection_update(parent_support.incorrect)
+
+
+def evaluate_rule(rule: Rule, vocab: Vocab) -> SupportStats:
+    ss = SupportStats()
+    correct, incorrect, not_matched = ss.correct, ss.incorrect, ss.not_matched
+    for x in vocab:
+        yhat = rule.apply(x.token)
+        if yhat is None:
+            not_matched.add(x)
+        elif yhat == x.lemma:
+            correct.add(x)
+        else:
+            incorrect.add(x)
+    return ss
+
+
+# Function to be argmax'd
+def rule_candidate_contribution_measure(
+    child_support: SupportStats, parent_support: SupportStats
+) -> Tuple[int, ...]:
+    """
+    RETURNS tuple of numeric values expressing positive contribution of rule. Higher
+    means better.
+    """
+    # Matched at least one example.
+    c0 = int(bool(child_support.n_matched))
+    # N_wr + N_rr - N_rw (r := right; w := wrong)
+    c1 = (
+        len(parent_support.incorrect | child_support.correct)
+        + len(parent_support.correct | child_support.correct)
+        - len(parent_support.correct | child_support.incorrect)
+    )
+    # Select for lowest N_rr. Flipping sign so as to be able to minimize by
+    # argmaxing.
+    c2 = -(len(parent_support.correct | child_support.correct))
+    # N_rn - N_ww
+    c3 = len(parent_support.correct | child_support.not_matched) - len(
+        parent_support.incorrect | child_support.incorrect
+    )
+    # Simple tie breaker.
+    c4 = int(100 * random.random())
+    return c0, c1, c2, c3, c4
+
+
+def child_rule_generator(
+    rule: Rule,
+    support: SupportStats,
+    exhausted: ExhaustedExamples = None,
+    child_gen_f: Callable[
+        [Vocab, Rule, ExhaustedExamples], Iterator[Rule]
+    ] = derived_rule_generator,
+) -> Iterator[Tuple[Rule, SupportStats]]:
+    parent_support = support
+    parent_rule = rule
+    vocab = support.matched
+    exhausted = exhausted if exhausted is not None else set()
+    child_rule_candidates: Dict[Rule, SupportStats] = {}
+    child_rule_candidates.update(
+        (r, evaluate_rule(r, vocab))
+        for r in child_gen_f(vocab, parent_rule, exhausted)
+        if r not in child_rule_candidates
+    )
+    while child_rule_candidates and parent_support.n_matched > 0:
+        # print([x.summary for x in child_rule_candidates.values()])
+        best_child_rule, best_child_support = max(
+            child_rule_candidates.items(),
+            key=lambda tup: rule_candidate_contribution_measure(
+                child_support=tup[1], parent_support=parent_support
+            ),
+        )
+        # print(best_child_rule, f"({[x.token for x in best_child_support.matched]})", best_child_support.n_matched)
+        if best_child_support.n_matched == 0:
+            return child_rule_candidates
+
+        # Remove selected rule from future consideration.
+        child_rule_candidates.pop(best_child_rule)
+
+        # Remove rules from consideration with the same left-hand side (pattern
+        # that matches incoming tokens) as that of the selected child rule.
+        _best_child_rule_lhs_pattern = best_child_rule.lhs
+        candidates_w_same_lhs = [
+            r for r in child_rule_candidates.keys() if r.lhs == _best_child_rule_lhs_pattern
+        ]
+        for r in candidates_w_same_lhs:
+            del child_rule_candidates[r]
+        # Transfer parent support to child_rule
+        # (Previously performed by calling
+        #  _transfer_parent_support_to_child_rule(parent_support, best_child_support)
+        # )
+        matched_by_child = best_child_support.matched
+        parent_support.correct.difference_update(matched_by_child)
+        parent_support.incorrect.difference_update(matched_by_child)
+        # Update children support from parent and sibling
+        # (Previously performed by calling
+        # _update_child_support_from_parent(other_child_support, parent_support)
+        # )
+        for other_child_support in child_rule_candidates.values():
+            other_child_support.correct.intersection_update(parent_support.correct)
+            other_child_support.incorrect.intersection_update(parent_support.incorrect)
+            other_child_support.not_matched.intersection_update(best_child_support.not_matched)
+        yield best_child_rule, best_child_support
+
+
+def make_root_rule():
+    return Rule(WILDCARD_CHAR, WILDCARD_CHAR)
+
+
+ChildRuleGenerator = Iterator[Tuple[Rule, SupportStats]]
+
+
+def train_string_transformation_rule_tree(
+    token_lemma_pairs: Iterable[Tuple[str, str]], max_depth=1000, max_nodes=-1
+) -> Tuple[Sequence[RuleNode], Dict[str, str], Tuple[int, int, int]]:
+    # TODO: implement proper stopping criterion.
+
+    max_nodes = max_nodes if max_nodes > 0 else 9999
+
+    vocab: Vocab = [ExamplePair(*tok_lem) for tok_lem in token_lemma_pairs]
+    exhausted: ExhaustedExamples = set()
+
+    root_node = RuleNode(make_root_rule(), id_=0)
+    root_node_support = evaluate_rule(root_node.rule, vocab)
+    root_node_child_rules_iter = child_rule_generator(
+        root_node.rule, root_node_support, exhausted, prime_rule_generator
+    )
+
+    expandable: List[Tuple[RuleNode, SupportStats, ChildRuleGenerator]] = []
+    non_expandable: List[Tuple[RuleNode, SupportStats, ChildRuleGenerator]] = []
+    expandable.append((root_node, root_node_support, root_node_child_rules_iter))
+
+    def total_nodes():
+        return len(expandable) + len(non_expandable)
+
+    def global_performance() -> Tuple[int, int, int]:
+        """
+        RETURNS: (correct, incorrect, non_matched)
+        """
+        make_nodes_support_iter = lambda: map(
+            op.itemgetter(1), it.chain(expandable, non_expandable)
+        )
+        correct = ft.reduce(set.union, (support.correct for support in make_nodes_support_iter()))
+        incorrect = ft.reduce(
+            set.union, (support.incorrect for support in make_nodes_support_iter())
+        )
+        if correct & incorrect:
+            raise RuntimeError(
+                "There should be no overlap between the sets of "
+                "instances of correct and incorrect lemmatization."
+            )
+        n_correct, n_incorrect = len(correct), len(incorrect)
+        n_not_matched = sum(1 for x in vocab if x not in (correct | incorrect))
+        return n_correct, n_incorrect, n_not_matched
+
+    # Record of global performance at each training step.
+    history = [global_performance()]
+
+    def cease_training() -> bool:
+        if len(history) > 1 and history[-2][1] < history[-1][1]:
+            logger.debug("Terminate training: Previous step made as many/fewer errors.")
+            return True
+        if total_nodes() >= max_nodes:
+            logger.debug("Terminate training: Reached maximum number of nodes in tree.")
+            return True
+
+    new_nodes_counter = total_nodes()
+
+    while not cease_training():
+        if not expandable:
             break
-    print(j, len(predicted_lemma) - j, len(lemma) - j)
 
-    left_spans = list(capturing_group_spans(result.match))
-    print(apply_mask(token, mask_from_spans(left_spans, len(token))))
+        expandable.sort(key=lambda x: (x[1].n_incorrect, random.random()))
 
-    analysis_right = re.match(regexify_pattern_to_match(result.rule.rhs), predicted_lemma)
-    print(apply_mask(predicted_lemma, mask_from_spans(capturing_group_spans(analysis_right), len(predicted_lemma))))
+        while expandable:
 
-    print(predicted_lemma, lemma)
-    diff = SequenceMatcher(None, predicted_lemma, lemma)
-    for tag, s1, e1, s2, e2 in diff.get_opcodes():
-        print(tag, s1, e1, s2, e2)
-        # if tag == "insert":
-        #     print(tag, predicted[s1:e1], "->", lemma[s2:e2])
+            node, node_support, node_child_iter = n = expandable.pop()
+            if node.depth == max_depth:
+                logger.debug(f"Not extending: Hit max. node depth d={max_depth}")
+            elif node_support.n_incorrect == 0:
+                logger.debug(f"Not extending: Node {node} already has zero error.")
+            else:
+                try:
+                    child_rule, child_rule_support = next(node_child_iter)
+                except StopIteration:
+                    logger.debug(f"Not extending: Cannot derive any more children from {node.rule}")
+                else:
+                    expandable.append(n)
+                    break  # Signals that the node was expandable. (Skips ELSE block.)
+            non_expandable.append(n)
+        else:  # Block executed only if all expandable nodes were exhausted.
+            continue
+
+        # ----------------------------------------------------------------------
+        # Everything beyond this point is reachable only if next(node_child_iter)
+        # yielded a child_rule.
+        child_rule_node = RuleNode(child_rule, id_=new_nodes_counter)
+        child_rule_node.attach(parent=node)
+        child_rule_child_rules_iter = child_rule_generator(
+            child_rule, child_rule_support, exhausted, child_gen_f=derived_rule_generator
+        )
+        expandable.append((child_rule_node, child_rule_support, child_rule_child_rules_iter))
+
+        new_nodes_counter += 1
+        history.append(global_performance())
+
+    nodes_only = sorted(
+        map(op.itemgetter(0), it.chain(expandable, non_expandable)), key=lambda t: t.id_
+    )
+
+    exhausted_as_lookup = {x.token: x.lemma for x in exhausted}
+
+    # First item in `nodes_only` is the root node.
+    return nodes_only, exhausted_as_lookup, history[-1]
 
 
-if __name__ == '__main__':
-    find_error_exp()
+class STRtree:
+    def __init__(self, **cfg):
+        self.nodes = None
+        self.root = None
+        self.cfg = cfg
+        self._exhausted_lookup = None
+
+    @staticmethod
+    def _find_and_apply_matching_rule(
+        tree: RuleNode, s: str
+    ) -> Tuple[Optional[str], Optional[RuleNode]]:
+        """Find deepest, leftmost rule node that matches `s` and return the
+        result of rule application, accompanied by the node hosting the rule.
+
+        RETURN: (result of applying rule, rule node)
+        """
+        match, rule_node = None, None
+        queue = deque([tree])
+        while queue:
+            node = queue.popleft()
+            m = node.rule.match(s)
+            if m:
+                match = m
+                rule_node = node
+                queue.clear()
+                queue.extend(rule_node.children)
+        result = rule_node.rule.transform_match(match) if match else None
+        return result, rule_node
+
+    def fit(self, x: Iterable[Tuple[str, str]]) -> "STRtree":
+        nodes, exhausted, _ = train_string_transformation_rule_tree(x, **self.cfg)
+        self.nodes = nodes
+        self.root = nodes[0]
+        self._exhausted_lookup = exhausted
+
+    def predict(self, s: str) -> str:
+        try:
+            result, _ = self._find_and_apply_matching_rule(self.root, s)
+            return result
+        except AttributeError:
+            raise RuntimeError("Method called that required STRtree to be fit() first.")
+
+    def lookup(self, s):
+        try:
+            return self._exhausted_lookup.get(s, None)
+        except AttributeError:
+            raise RuntimeError("Method called that required STRtree to be fit() first.")
+
+    def save(self, f):
+        pass
+
+    @classmethod
+    def load(cls, f):
+        pass
+
+
+class Lemmatizer:
+    def __init__(self, pos=True, morph=False, **cfg):
+        self.trees: Dict[Any, STRtree] = {}
+        self.cfg = cfg
+        self._lemmatize = None
+        self._only_tree: Optional[STRtree] = None
+        self._use_pos = pos
+        self._use_morph = morph
+        if morph:
+            raise ValueError("Morphological features currently not supported.")
+
+    def fit(
+        self,
+        x: Sequence[Union[str, Tuple[str, str], Tuple[str, str, Tuple[str, ...]]]],
+        y: Sequence[str],
+    ) -> "Lemmatizer":
+        """
+        Args:
+            x: (tokens, *features [^1])
+            y: lemmas
+        Returns: Lemmatizer
+        [1]: usually just pos
+        """
+        if not len(x) == len(y):
+            raise ValueError("`x` and `y` args should have the same length.")
+        if self._use_pos:
+            if self._use_morph:
+                self._fit_w_morph()
+            else:
+                self._fit_w_pos(x, y)
+        else:
+            self._fit_no_pos(x, y)
+        return self
+
+    def lemmatize(self, s, *args):
+        return self._lemmatize(s, *args)
+
+    def _fit_no_pos(self, x: Sequence[str], y: Sequence[str]):
+        str_tree = STRtree(**self.cfg)
+        str_tree.fit(zip(x, y))
+        self.trees[None] = str_tree
+        self._only_tree = str_tree
+        self.lemmatize = self._lemmatize_no_pos
+
+    def _fit_w_pos(self, x: Sequence[Tuple[str, str]], y: Sequence[str]):
+        pos2data = defaultdict(list)
+        for (token, pos), lemma in zip(x, y):
+            pos2data[pos].append((token, lemma))
+        for pos, data in pos2data.items():
+            str_tree = STRtree(**self.cfg)
+            str_tree.fit(data)
+            self.trees[pos] = str_tree
+        self.lemmatize = self._lemmatize_w_pos
+
+    def _fit_w_morph(self):
+        raise NotImplementedError
+
+    def _lemmatize_no_pos(self, s):
+        return self._only_tree.predict(s)
+
+    def _lemmatize_w_pos(self, s, pos):
+        try:
+            return self.trees[pos].predict(s)
+        except KeyError:
+            return s
+
+    def _lemmatize_w_morph(self, pos, morph=None):
+        raise NotImplementedError
+
+
+def test_cases():
+    return [
+        ("geknipt", "knippen"),  # ge*t -> *pen
+        ("gelapt", "lappen"),  # ge*t -> *pen
+        ("geschikt", "schikken"),  # ge*t -> ge*ken
+        ("gekaapt", "kapen"),  # ge*apt -> *pen
+        ("wandelden", "wandelen"),  # *den -> *en
+        ("afgevraagd", "afvragen"),
+        ("praat", "praten"),
+        ("plink", "barr"),
+        ("gezegd", "zeggen"),
+        ("bindt", "binden"),
+    ]
+
+
+def child_rule_test():
+    vocab = [ExamplePair(t, l) for t, l in test_cases()]
+    root = make_root_rule()
+    root_stats = evaluate_rule(root, vocab)
+    exhausted = set()
+    for child_rule, child_rule_stats in child_rule_generator(
+        root, root_stats, exhausted, child_gen_f=prime_rule_generator
+    ):
+        print(child_rule, child_rule_stats.summary)
+
+
+def train_tree_test():
+    nodes = train_string_transformation_rule_tree(test_cases(), max_depth=10, max_nodes=1000)
+    print("result:")
+    import pprint
+
+    pprint.pprint(nodes)
+
+
+def test_str_tree():
+    str_tree = STRtree()
+    token_lemma_pairs = test_cases()
+    str_tree.fit(token_lemma_pairs)
+
+
+def lemmatizer_test_cases():
+    x, y = [], []
+    for token, lemma in test_cases():
+        x.append((token, "VERB"))
+        y.append(lemma)
+    return x, y
+
+
+def test_lemmatizer():
+    lemmatizer = Lemmatizer()
+    x, y = lemmatizer_test_cases()
+    lemmatizer.fit(x, y)
+    print(lemmatizer.lemmatize("gezegd", "VERB"))
+
+
+if __name__ == "__main__":
+    logging.basicConfig(level=logging.DEBUG)
+    # print(derive_new_rule(Rule("*d", "*en"), ExamplePair("afgevraagd", "afvragen"), 1))
+    # print(derive_new_rule(Rule("*t", "*en"), ExamplePair("praat", "praten"), 1))
+    # print(lhs_rhs_patterns("***ge***d", "******gen"))
+
+    # x = ExamplePair("regent", "regenen")
+    # print(prime_rule(x))
+
+    # print(is_subsumed_by("*a*t", "*t"))
+
+    # rn1 = RuleNode(Rule("*t", "*en"))
+    # rn2 = RuleNode(Rule("*at", "*ten"))
+    # rn1.attach(child=rn2)
+
+    # child_rule_test()
+
+    # WORKS as expected.
+    # parent_support = SupportStats(correct={"a", "b"})
+    # child_support = SupportStats(correct={"b"})
+    # _transfer_parent_support_to_child_rule(
+    #     parent_support,
+    #     child_support
+    # )
+    # print(parent_support)
+    # print(child_support)
+
+    # s1 = {ExamplePair("regent", "regenen"), ExamplePair("wandelt", "wandelen"), ExamplePair("zingt", "zingen")}
+    # s2 = {ExamplePair("wandelt", "wandelen")}
+    #
+    # stats1 = SupportStats(correct=s1)
+    # stats2 = SupportStats(correct=s2, incorrect={ExamplePair("zingt", "zingen")})
+    # _transfer_parent_support_to_child_rule(stats1, stats2)
+    # print(stats1)
+    # print(stats2)
+    #
+    # train_tree_test()
+    # test_str_tree()
+    test_lemmatizer()

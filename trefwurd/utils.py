@@ -18,8 +18,10 @@ def monkeypatch_spacy_nl(lemmatizer: SpacyLemmatizer):
     except ImportError:
         raise RuntimeError("Couldn't monkeypatch spaCy. Check if it's installed.")
     else:
+
         def create_lemmatizer(cls, nlp=None):
             return lemmatizer
+
         DutchDefaults.create_lemmatizer = create_lemmatizer.__get__(DutchDefaults, None)
 
 
@@ -46,4 +48,3 @@ def character_ngrams(string, min_gram=2, max_gram=3):
                 break
             else:
                 yield string[start_idx:end_idx]
-
