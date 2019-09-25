@@ -159,7 +159,7 @@ class Rule:
         return f"<{type(self).__name__} obj @ {id(self)}; {self.as_string()}>"
 
     def as_string(self):
-        return f"'{self.lhs}'-->'{self.rhs}'"
+        return f"{self.lhs}-->{self.rhs}"
 
     def __hash__(self):
         return hash((self.lhs, self.rhs))
@@ -624,6 +624,7 @@ ChildRuleGenerator = Iterator[Tuple[Rule, SupportStats]]
 def train_string_transformation_rule_tree(
     token_lemma_pairs: Iterable[Tuple[str, str]], max_depth=1000, max_nodes=-1
 ) -> Tuple[Sequence[RuleNode], Dict[str, str], Tuple[int, int, int]]:
+
     # TODO: implement proper stopping criterion.
 
     max_nodes = max_nodes if max_nodes > 0 else 9999
@@ -773,16 +774,57 @@ class STRtree:
         except AttributeError:
             raise RuntimeError("Method called that required STRtree to be fit() first.")
 
-    def save(self, f):
+    def serialize(self):
+        return self._serialize_nodes()
+
+    def _serialize_nodes(self):
+        """RETURNS: (serialized_nodes, serialized_lookup"""
+        node_lines = []
+        node: RuleNode
+        for node in self.nodes:
+            node_lines.append(
+                "\t".join(
+                    (str(node.id_),  # node ID
+                     node.rule.as_string(),  # node rule (e.g., "*d->*en")
+                     str(node.parent.id_ if node.parent else "_"),  # parent node ID or empty string
+                     (",".join(str(n.id_) for n in node.children) or "_"))
+                )
+            )
+        return "\n".join(node_lines)
+
+    @staticmethod
+    def deserialize(
+        self, nodes_data: str, lookup_data: Optional[str] = None
+    ) -> Tuple[Sequence[RuleNode], Optional[Dict[str, str]]]:
+        """RETURNS: (nodes, lookup)"""
         pass
 
     @classmethod
-    def load(cls, f):
+    def load(cls, fp) -> "STRtree":
+        pass
+
+    def save(self, f) -> None:
         pass
 
 
+def serialize_strtree_nodes(nodes: Sequence[RuleNode]) -> str:
+    pass
+
+
+def serialize_strtree_lookup(lookup: Dict[str, str]) -> str:
+    pass
+
+
+def parse_serialized_strtree_nodes(data: str) -> Sequence[RuleNode]:
+    pass
+
+
+def parse_serialized_strtree_lookup() ->:
+    pass
+
+
 class Lemmatizer:
-    def __init__(self, pos=True, morph=False, **cfg):
+    def __init__(self, pos=True, morph=False, cache=False, **cfg):
         self.trees: Dict[Any, STRtree] = {}
         self.cfg = cfg
         self._lemmatize = None
@@ -815,9 +857,6 @@ class Lemmatizer:
             self._fit_no_pos(x, y)
         return self
 
-    def lemmatize(self, s, *args):
-        return self._lemmatize(s, *args)
-
     def _fit_no_pos(self, x: Sequence[str], y: Sequence[str]):
         str_tree = STRtree(**self.cfg)
         str_tree.fit(zip(x, y))
@@ -838,6 +877,9 @@ class Lemmatizer:
     def _fit_w_morph(self):
         raise NotImplementedError
 
+    def lemmatize(self, s, *args):
+        raise NotImplementedError("Concrete implementation set by calling fit() first.")
+
     def _lemmatize_no_pos(self, s):
         return self._only_tree.predict(s)
 
@@ -849,6 +891,9 @@ class Lemmatizer:
 
     def _lemmatize_w_morph(self, pos, morph=None):
         raise NotImplementedError
+
+    def set_logger(self, fp):
+        pass
 
 
 def test_cases():
@@ -889,6 +934,13 @@ def test_str_tree():
     str_tree = STRtree()
     token_lemma_pairs = test_cases()
     str_tree.fit(token_lemma_pairs)
+
+
+def test_str_tree_serialize():
+    str_tree = STRtree()
+    token_lemma_pairs = test_cases()
+    str_tree.fit(token_lemma_pairs)
+    print(str_tree.serialize())
 
 
 def lemmatizer_test_cases():
@@ -944,4 +996,5 @@ if __name__ == "__main__":
     #
     # train_tree_test()
     # test_str_tree()
-    test_lemmatizer()
+    # test_lemmatizer()
+    test_str_tree_serialize()
