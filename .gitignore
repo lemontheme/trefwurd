@@ -3,9 +3,9 @@
 
 # Project-specific
 data/external/e-Lex-1.1.txt.gz  # TODO: find out how to distribute while honoring license
-data/processed
-data/raw
-scripts/tmp
+data/processed/
+data/raw/
+scripts/tmp/
 
 
 # Byte-compiled / optimized / DLL files
