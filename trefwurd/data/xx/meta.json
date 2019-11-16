@@ -1,0 +1,9 @@
+{
+  "name": "xx_v1",
+  "lang": "xx",
+  "description": "Lemmatization model for language xx",
+  "pos": ["NOUN", "VERB"],
+  "created_at": "time",
+  "license": "MIT",
+  "sources": [{"name": "name of corpus", "url": "where.to/download/it"}]
+}

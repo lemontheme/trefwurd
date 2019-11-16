@@ -1,0 +1,21 @@
+{
+  "_": {
+    "tree_0": [
+      {
+        "nodes": [
+          {
+            "id_": 0,
+            "rule": "*lhs#->#*rhs",
+            "samples": [
+              0,
+              212
+            ],
+            "parent": null,
+            "left_child": null,
+            "right_child": null
+          }
+        ]
+      }
+    ]
+  }
+}

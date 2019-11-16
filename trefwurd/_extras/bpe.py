@@ -201,7 +201,7 @@ def prune_stats(stats, threshold: int):
 # ON-SITE TESTING
 
 if __name__ == '__main__':
-    from .utils import read_lexical_data
+    from trefwurd.utils import read_lexical_data
     lexical_data_f = "data/processed/word_lemma_pos_elex.txt"
     data = read_lexical_data(lexical_data_f)
     words = list(it.chain(it.islice(data.get("noun"), None)))

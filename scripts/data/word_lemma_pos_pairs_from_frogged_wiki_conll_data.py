@@ -26,7 +26,7 @@ def _read_txt_gazetteer(f: str):
 
 def initialize_mega_gazetteer():
     gazetteer_dir = "data/gazetteers"
-    with open(os.path.join(gazetteer_dir, "meta.json")) as fp:
+    with open(os.path.join(gazetteer_dir, "acc.json")) as fp:
         gazetteer_list = json.load(fp)["gazetteers"]
     return set(
         it.chain.from_iterable(
