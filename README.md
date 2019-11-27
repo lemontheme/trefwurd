@@ -1,4 +1,4 @@
-![banner](".github/trefwurd_banner_draft_1.png")
+![banner](.github/trefwurd_banner_draft_1.png)
 
 Status: incomplete. Don't use yet.
 
