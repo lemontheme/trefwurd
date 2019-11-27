@@ -215,7 +215,6 @@ class RuleTree:
 
         if not len(x) == len(y):
             raise ValueError("Seqs `x` (tokens) and `y` (lemmas) have unequal lengths.")
-
         data = list(ExamplePair(x, y) for x, y in zip(x, y))
 
         builder = Builder(self)
@@ -261,7 +260,7 @@ class RuleTree:
     @classmethod
     def from_dict(cls, data: dict) -> "RuleTree":
         id2node = {}
-        nodes_data = data["nodes.jsonl"]
+        nodes_data = data["nodes"]
         for x in nodes_data:
             id_ = x["id_"]
             rule_string = x["rule"]
@@ -286,7 +285,7 @@ class RuleTree:
     def to_dict(self) -> Dict[str, Any]:
         return {
             "cfg": self.cfg,
-            "nodes.jsonl": [
+            "nodes": [
                 {
                     "id_": n.id_,
                     "rule": n.rule.to_string() if n.rule is not None else None,
@@ -436,15 +435,15 @@ def _build_tree(examples, cfg) -> RuleTree:
 #                 pass
 #
 #     def _compute_subtrees(self) -> Iterator[Tuple[Collection[RuleNode], int, float]]:
-#         nodes.jsonl = self.tree.root.descendants
+#         nodes = self.tree.root.descendants
 #         total_samples = sum(self.tree.root.samples)
-#         leaves_frontier = {n for n in nodes.jsonl if n.is_leaf}
+#         leaves_frontier = {n for n in nodes if n.is_leaf}
 #         pruned_nodes = set()
 #
-#         for _ in range(len(nodes.jsonl)):
+#         for _ in range(len(nodes)):
 #             scored_pruning_candidates = []
 #             n: Union[BinaryNode, RuleNode]
-#             for n in nodes.jsonl:
+#             for n in nodes:
 #                 if n in pruned_nodes or n.is_leaf:
 #                     continue
 #                 subtree_leaves = [d for d in n.descendants if d in leaves_frontier]
@@ -453,7 +452,7 @@ def _build_tree(examples, cfg) -> RuleTree:
 #                 # noinspection PyUnresolvedReferences
 #                 R_T_t = sum(n_.probs[1] * sum(n_.samples) / total_samples for n_ in subtree_leaves)
 #                 alpha_score = (R_t - R_T_t) / max(n_leaves_pruned - 1, 1)
-#                 # Including No. leaves pruned so that, in the event of a tie, subtrees with fewer nodes.jsonl are preferred.
+#                 # Including No. leaves pruned so that, in the event of a tie, subtrees with fewer nodes are preferred.
 #                 scored_pruning_candidates.append((n, (alpha_score, n_leaves_pruned)))
 #
 #             if not scored_pruning_candidates:
@@ -525,7 +524,7 @@ class Builder:
             logger.debug(f"Nodes: {len(active_nodes) + len(final_nodes)}")
 
             if _max_nodes_exceeded():
-                logger.debug("Hit maximum number of nodes.jsonl.")
+                logger.debug("Hit maximum number of nodes")
                 break
 
             active_nodes.sort(key=lambda node: node.probs[1])
@@ -629,7 +628,7 @@ class Builder:
                 final_nodes.append(node)
 
         if not active_nodes:
-            logger.debug("No expandable nodes.jsonl remaining.")
+            logger.debug("No expandable nodes remaining.")
 
         return root_node
 

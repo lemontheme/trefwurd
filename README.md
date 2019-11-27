@@ -1,4 +1,6 @@
-# Trefwurd
+![banner](".github/trefwurd_banner_draft_1.png")
+
+Status: incomplete. Don't use yet.
 
 You probably don't need a lemmatizer, but if you do, *trefwurd*'s got you covered.
 
@@ -50,10 +52,9 @@ lemmatizer.lemmatize(["honden", "eten", "alles"])
 
 TODO: make table.
 
-## Tests
+## Contributing
 
-Hahaha...
+### Tests
 
-There are no tests.
+TODO: Um... Add tests.
 
-<a href="https://explosion.ai"><img src="assets/lemontree.jpg" height="125" align="right" /></a>

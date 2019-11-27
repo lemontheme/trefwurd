@@ -7,7 +7,6 @@ from .lemmatizer import Lemmatizer
 
 data = importlib.resources.contents("trefwurd.data.xx")
 
-breakpoint()
 
 
 def load(path_or_lang: Union[Path, str]) -> lemmatizer.Lemmatizer:

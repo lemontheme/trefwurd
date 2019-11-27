@@ -21,9 +21,9 @@ class Lemmatizer:
             self.meta["lang"] = lang
         self.cfg = cfg
         # -------------------------------------------
-        self._feat2model: Dict[Hashable, Model] = {}
+        self._feat2model: Dict[Union[Hashable, None], Model] = {}
+        self._feat2lookup = {}
         self._lemmatize = None
-        self._lookup_table = None
         self._model_cls: Type[Model] = RuleTreeForest
         self._exceptions = None
 
@@ -52,7 +52,8 @@ class Lemmatizer:
             y = list(y)
         if not len(x) == len(y):
             raise ValueError("`x` and `y` args should have the same length.")
-        n_features = len(x[1:])
+        self._feat2lookup = {}
+        n_features = len(x[0][1:])
         if n_features == 0:
             self._fit_no_pos(x, y)  # Raises NotImplementedError.
         elif n_features == 1:
@@ -63,61 +64,60 @@ class Lemmatizer:
             raise ValueError("Invalid `x` argument")
         return self
 
-    def to_disk(self, path: Union[str, Path]) -> None:
+    def save(self, path: Union[str, Path]) -> None:
         path = Path(path)
+        path.mkdir(exist_ok=True)
         create_file(path / "__init__.py")
         meta = generate_meta(self.meta)
         srsly.write_json(path / "meta.json", meta)
-        create_dir(path / "model")
-        model = self.to_dict()
-        model_dir = path / "model"
-        cfg, lookup, rules = model.get("cfg"), model.get("lookup"), model.get("rules")
-        if cfg is not None:
-            srsly.write_json(model_dir / "cfg", cfg)
-        if lookup is not None:
-            srsly.write_gzip_json(model_dir / "lookup.gz", lookup)
-        if rules is not None:
-            srsly.write_gzip_json(model_dir / "rules.gz", rules)
+        model_dir = path / "data"
+        model_dir.mkdir(exist_ok=True)
+        srsly.write_json(model_dir / "cfg", self.cfg)
+        srsly.write_gzip_json(model_dir / "lookup.gz", self._feat2lookup or {})
+        srsly.write_gzip_json(model_dir / "model.gz", self._feat2model)
 
     @classmethod
-    def from_disk(cls, path: Union[str, Path]) -> "RuleTree":
+    def load(cls, path: Union[str, Path]) -> "Lemmatizer":
         path = Path(path)
         if not path.is_dir():
             raise ValueError(f"{path} must be a directory or archive")
+        model_dir = path / "data"
         meta = path / "meta.json"
-        model_dir = meta / "model_dir"
-        cfg_f = model_dir / "cfg"
-        lookup_f = model_dir / "lookup.gz"
-        rules_f = model_dir / "rules.gz"
-        lemmatizer_data = {
-            "cfg":
-        }
+        meta = srsly.read_json(meta)
+        cfg = srsly.read_json(model_dir / "cfg")
+        lookup = srsly.read_gzip_json(model_dir / "lookup.gz")
+        model = srsly.read_gzip_json(model_dir / "model.gz")
+        lemmatizer = cls()
+        lemmatizer._meta = meta
+        lemmatizer.cfg = cfg
+        lemmatizer._feat2model = model
+        lemmatizer._feat2lookup = lookup
+        return lemmatizer
 
-    def to_dict(self):
+    def _to_dict(self):
         return {
             "cfg": self.cfg,
             "meta": self.meta,
             "rules": self._feat2model,
+            "lookup": self._feat2lookup,
         }
 
     def _fit_no_pos(self, x: Sequence[str], y: Sequence[str]):
-        raise NotImplementedError
-        # str_tree = RuleTree(**self.cfg)
-        # str_tree.fit(zip(x, y))
-        # self.trees[None] = str_tree
-        # self._only_tree = str_tree
-        # self.lemmatize = self._lemmatize_no_pos
-        # return self
+        model = self._model_cls(**self.cfg)
+        model.fit(x, y)
+        self._feat2model[None] = model
+        self.lemmatize = self._lemmatize_no_pos
+        return self
 
     def _fit_w_pos(self, x: Sequence[Tuple[str, str]], y: Sequence[str]) -> "Lemmatizer":
         examples_by_pos = defaultdict(dict)  # type: Dict[str, Dict[str, str]]
         for (token, pos), lemma in zip(x, y):
             examples_by_pos[pos][token] = lemma
         for pos, examples in examples_by_pos.items():
-            model = self._model_cls(**self.cfg)
+            model = self._model_cls(**self.cfg)  # type: Union[RuleTree, RuleTreeForest]
             x_pos, y_pos = zip(*examples.items())
             model.fit(x_pos, y_pos)
-            self._feat2model[x_pos] = model
+            self._feat2model[pos] = model.to_dict()
         self.lemmatize = self._lemmatize_w_pos
         return self
 
@@ -129,8 +129,7 @@ class Lemmatizer:
         pass
 
     def _lemmatize_no_pos(self, s):
-        raise NotImplementedError
-        # return self._only_tree.predict(s)
+        return self._feat2model[None].predict(s)
 
     def _lemmatize_w_pos(self, s, pos):
         try:
@@ -142,4 +141,3 @@ class Lemmatizer:
     def _lemmatize_w_morph(self, pos, morph=None):
         raise NotImplementedError
 
-line ="Dfsdf"
